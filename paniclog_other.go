@@ -2,7 +2,7 @@
 
 // +build !windows,!darwin,!dragonfly,!freebsd,!linux,!nacl,!netbsd,!openbsd
 
-package log
+package paniclog
 
 import (
 	"errors"

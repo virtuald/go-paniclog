@@ -6,7 +6,7 @@
 
 // +build windows
 
-package log
+package paniclog
 
 import (
 	"errors"
