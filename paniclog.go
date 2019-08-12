@@ -6,7 +6,8 @@ import "os"
 type UndoFunction func() error
 
 // RedirectStderr to the file passed in, so that the output of any panics that
-// occur will be sent to that file.
+// occur will be sent to that file. The caller may close the file after
+// this function returns.
 //
 // Of course, anything else written to stderr will also be sent to that file,
 // so don't do that unless that's your intent.

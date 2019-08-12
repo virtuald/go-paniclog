@@ -20,6 +20,16 @@ var (
 	procGetStdHandle = kernel32.MustFindProc("GetStdHandle")
 )
 
+func dupFD(fd uintptr) (syscall.Handle, error) {
+	// Cribbed from https://github.com/golang/go/blob/go1.8/src/syscall/exec_windows.go#L303.
+	p, err := syscall.GetCurrentProcess()
+	if err != nil {
+		return 0, err
+	}
+	var h syscall.Handle
+	return h, syscall.DuplicateHandle(p, syscall.Handle(fd), p, &h, 0, true, syscall.DUPLICATE_SAME_ACCESS)
+}
+
 func getStdHandle(stdHandle int32) (syscall.Handle, error) {
 	r0, _, e1 := syscall.Syscall(procGetStdHandle.Addr(), 2, uintptr(stdHandle), 0, 0)
 	rh0 := syscall.Handle(r0)
@@ -50,7 +60,13 @@ func redirectStderr(f *os.File) (UndoFunction, error) {
 		return nil, errors.New("Failed to redirect stderr to file: " + err.Error())
 	}
 
-	err = setStdHandle(syscall.STD_ERROR_HANDLE, syscall.Handle(f.Fd()))
+	// duplicate the handle to match unix behavior
+	fHandle, err := dupFD(f.Fd())
+	if err != nil {
+		return nil, errors.New("Failed to duplicate file: " + err.Error())
+	}
+
+	err = setStdHandle(syscall.STD_ERROR_HANDLE, fHandle)
 	if err != nil {
 		return nil, errors.New("Failed to redirect stderr to file: " + err.Error())
 	}
@@ -60,6 +76,7 @@ func redirectStderr(f *os.File) (UndoFunction, error) {
 		if err != nil {
 			return errors.New("Failed to redirect stderr to file: " + err.Error())
 		}
+		syscall.CloseHandle(fHandle)
 		return nil
 	}
 

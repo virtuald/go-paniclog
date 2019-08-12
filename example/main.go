@@ -21,8 +21,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// If you close the file on Windows, it won't output
-	//f.Close()
+	f.Close()
 
 	if os.Getenv("UNDO_PANICLOG") != "" {
 		// demonstrates undoing the stderr redirect
