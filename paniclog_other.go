@@ -9,6 +9,6 @@ import (
 	"os"
 )
 
-func redirectStderr(f *os.File) error {
-	return errors.New("Can't redirect stderr to file")
+func redirectStderr(f *os.File) (UndoFunction, error) {
+	return nil, errors.New("Can't redirect stderr to file")
 }

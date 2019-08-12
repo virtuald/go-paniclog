@@ -7,7 +7,9 @@ a file or really do anything with it other than to write to stderr.
 
 One possible solution is that you can redirect stderr to a file, and that's 
 all that this package does. Of course, once you redirect stderr to file,
-anything else you write to stderr will also end up in that file.
+anything else you write to stderr will also end up in that file. v2.0 now
+includes a function you can use to undo the redirection if you wanted to do
+that for some reason.
 
 Reference: https://stackoverflow.com/questions/34772012/capturing-panic-in-golang
 

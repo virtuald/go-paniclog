@@ -15,8 +15,19 @@ func main() {
 		os.Exit(1)
 	}
 
-	paniclog.RedirectStderr(f)
-	f.Close()
+	undo, err := paniclog.RedirectStderr(f)
+	if err != nil {
+		fmt.Println("Error redirecting stderr:", err)
+		os.Exit(1)
+	}
+
+	// If you close the file on Windows, it won't output
+	//f.Close()
+
+	if os.Getenv("UNDO_PANICLOG") != "" {
+		// demonstrates undoing the stderr redirect
+		undo()
+	}
 
 	panic("this should end up in the file instead of the console")
 }

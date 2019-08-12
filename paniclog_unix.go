@@ -11,10 +11,29 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func redirectStderr(f *os.File) error {
-	err := unix.Dup2(int(f.Fd()), int(os.Stderr.Fd()))
+func redirectStderr(f *os.File) (UndoFunction, error) {
+
+	stderrFd := int(os.Stderr.Fd())
+	oldfd, err := unix.Dup(stderrFd)
 	if err != nil {
-		return errors.New("Failed to redirect stderr to file: " + err.Error())
+		return nil, errors.New("Failed to redirect stderr to file: " + err.Error())
 	}
-	return nil
+
+	err = unix.Dup2(int(f.Fd()), stderrFd)
+	if err != nil {
+		return nil, errors.New("Failed to redirect stderr to file: " + err.Error())
+	}
+
+	undo := func() error {
+		undoErr := unix.Dup2(oldfd, stderrFd)
+		unix.Close(oldfd)
+
+		if undoErr != nil {
+			return errors.New("Failed to reverse stderr redirection: " + err.Error())
+		}
+
+		return nil
+	}
+
+	return undo, nil
 }

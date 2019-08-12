@@ -17,7 +17,20 @@ import (
 var (
 	kernel32         = syscall.MustLoadDLL("kernel32.dll")
 	procSetStdHandle = kernel32.MustFindProc("SetStdHandle")
+	procGetStdHandle = kernel32.MustFindProc("GetStdHandle")
 )
+
+func getStdHandle(stdHandle int32) (syscall.Handle, error) {
+	r0, _, e1 := syscall.Syscall(procGetStdHandle.Addr(), 2, uintptr(stdHandle), 0, 0)
+	rh0 := syscall.Handle(r0)
+	if rh0 == syscall.InvalidHandle {
+		if e1 != 0 {
+			return syscall.InvalidHandle, error(e1)
+		}
+		return syscall.InvalidHandle, syscall.EINVAL
+	}
+	return syscall.Handle(r0), nil
+}
 
 func setStdHandle(stdhandle int32, handle syscall.Handle) error {
 	r0, _, e1 := syscall.Syscall(procSetStdHandle.Addr(), 2, uintptr(stdhandle), uintptr(handle), 0)
@@ -30,11 +43,25 @@ func setStdHandle(stdhandle int32, handle syscall.Handle) error {
 	return nil
 }
 
-func redirectStderr(f *os.File) error {
-	err := setStdHandle(syscall.STD_ERROR_HANDLE, syscall.Handle(f.Fd()))
+func redirectStderr(f *os.File) (UndoFunction, error) {
+
+	stderrFd, err := getStdHandle(syscall.STD_ERROR_HANDLE)
 	if err != nil {
-		return errors.New("Failed to redirect stderr to file: " + err.Error())
+		return nil, errors.New("Failed to redirect stderr to file: " + err.Error())
 	}
 
-	return nil
+	err = setStdHandle(syscall.STD_ERROR_HANDLE, syscall.Handle(f.Fd()))
+	if err != nil {
+		return nil, errors.New("Failed to redirect stderr to file: " + err.Error())
+	}
+
+	undo := func() error {
+		err := setStdHandle(syscall.STD_ERROR_HANDLE, stderrFd)
+		if err != nil {
+			return errors.New("Failed to redirect stderr to file: " + err.Error())
+		}
+		return nil
+	}
+
+	return undo, nil
 }
